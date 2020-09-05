@@ -287,7 +287,10 @@ ZoneSet::MoveWindowIntoZoneByIndexSet(HWND window, HWND windowZone, const std::v
     {
         if (index < m_zones.size())
         {
-            RECT newSize = m_zones.at(index)->ComputeActualZoneRect(window, windowZone);
+            // We need the actual zone rect for the maximize logic, the hook takes care of the margin and frame
+            // TODO: Ideally this should be behind a switch, so the user can choose between Resize vs Maximize (probably with an exclude list to deal with apps that behave unexpectedly)
+            //RECT newSize = m_zones.at(index)->ComputeActualZoneRect(window, windowZone);
+            RECT newSize = m_zones.at(index)->GetZoneRect();
             if (!sizeEmpty)
             {
                 size.left = min(size.left, newSize.left);
@@ -312,8 +315,9 @@ ZoneSet::MoveWindowIntoZoneByIndexSet(HWND window, HWND windowZone, const std::v
 
     if (!sizeEmpty)
     {
-        SaveWindowSizeAndOrigin(window);
-        SizeWindowToRect(window, size);
+        //SaveWindowSizeAndOrigin(window);
+        //SizeWindowToRect(window, size);
+        MaximizeWindowToRect(window, size);
         StampWindow(window, bitmask);
     }
 }

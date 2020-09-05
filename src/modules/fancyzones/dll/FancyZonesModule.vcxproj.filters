@@ -7,6 +7,7 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="wndprochook.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -34,8 +35,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\lib\fancyzones.rc">
-      <Filter>Generated Files</Filter>
-    </ResourceCompile>
+    <ResourceCompile Include="..\lib\Generated Files\fancyzones.rc" />
   </ItemGroup>
 </Project>

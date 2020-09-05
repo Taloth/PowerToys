@@ -465,7 +465,8 @@ void OpenWindowOnActiveMonitor(HWND window, HMONITOR monitor) noexcept
             if (GetMonitorInfo(monitor, &destMi))
             {
                 RECT newPosition = FitOnScreen(placement.rcNormalPosition, originMi.rcWork, destMi.rcWork);
-                FancyZonesUtils::SizeWindowToRect(window, newPosition);
+                //FancyZonesUtils::SizeWindowToRect(window, newPosition);
+                FancyZonesUtils::MaximizeWindowToRect(window, newPosition);
             }
         }
     }

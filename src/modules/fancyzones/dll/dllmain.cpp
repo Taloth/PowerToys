@@ -15,6 +15,9 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
+extern "C" HHOOK __cdecl MinMaxAttachHook();
+extern "C" bool __cdecl MinMaxDetachHook(HHOOK hhook);
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
@@ -87,6 +90,18 @@ public:
                                 GET_RESOURCE_STRING(IDS_POWERTOYS_FANCYZONES).c_str(),
                                 MB_OK | MB_ICONERROR);
                 }
+
+                s_llWinProcHook = MinMaxAttachHook();
+                if (!s_llWinProcHook)
+                {
+                    // TODO: Update Resource
+                    MessageBoxW(NULL,
+                                GET_RESOURCE_STRING(IDS_KEYBOARD_LISTENER_ERROR).c_str(),
+                                GET_RESOURCE_STRING(IDS_POWERTOYS_FANCYZONES).c_str(),
+                                MB_OK | MB_ICONERROR);
+                }
+
+                // TODO: Invoke loader x86 exe and track it
             }
 
             std::array<DWORD, 6> events_to_subscribe = {
@@ -168,6 +183,16 @@ private:
                 }
             }
 
+            if (s_llWinProcHook)
+            {
+                if (MinMaxDetachHook(s_llWinProcHook))
+                {
+                    s_llWinProcHook = nullptr;
+                }
+
+                // TODO: Close loader x86 exe
+            }
+
             m_staticWinEventHooks.erase(std::remove_if(begin(m_staticWinEventHooks),
                                                        end(m_staticWinEventHooks),
                                                        [](const HWINEVENTHOOK hook) {
@@ -193,6 +218,7 @@ private:
 
     static inline FancyZonesModule* s_instance;
     static inline HHOOK s_llKeyboardHook;
+    static inline HHOOK s_llWinProcHook;
 
     std::vector<HWINEVENTHOOK> m_staticWinEventHooks;
     HWINEVENTHOOK m_objectLocationWinEventHook;

@@ -201,6 +201,25 @@ namespace FancyZonesUtils
         ::SetWindowPlacement(window, &placement);
     }
 
+    void MaximizeWindowToRect(HWND window, RECT rect) noexcept
+    {
+        WINDOWPLACEMENT placement{};
+        ::GetWindowPlacement(window, &placement);
+
+        // Wait if SW_SHOWMINIMIZED would be removed from window (Issue #1685)
+        for (int i = 0; i < 5 && (placement.showCmd == SW_SHOWMINIMIZED); ++i)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            ::GetWindowPlacement(window, &placement);
+        }
+              
+        // Set the bounds for this window so the hooks can access the desired rect
+        SaveWindowMaximizedSizeAndOrigin(window, rect);
+
+        // Note: Using SetWindowsPlacemant caused artifacts in one of the earlier tests
+        ShowWindow(window, SW_MAXIMIZE);
+    }
+
     FancyZonesWindowInfo GetFancyZonesWindowInfo(HWND window)
     {
         FancyZonesWindowInfo result;
@@ -278,6 +297,63 @@ namespace FancyZonesUtils
             return true;
         }
         return false;
+    }
+
+    void SaveWindowMaximizedSizeAndOrigin(HWND window, RECT rect) noexcept
+    {
+        int maxOriginX = rect.left;
+        int maxOriginY = rect.top;
+        int maxSizeX = rect.right - rect.left;
+        int maxSizeY = rect.bottom - rect.top;
+
+        DPIAware::InverseConvert(MonitorFromWindow(window, MONITOR_DEFAULTTONULL), maxOriginX, maxOriginY);
+        DPIAware::InverseConvert(MonitorFromWindow(window, MONITOR_DEFAULTTONULL), maxSizeX, maxSizeY);
+
+        // Note: We're using shorts here so the x86 hook can access the values
+        std::array<short, 2> maxOrigin = { maxOriginX, maxOriginY };
+        std::array<short, 2> maxSize = { maxSizeX, maxSizeY };
+
+        HANDLE originData;
+        HANDLE sizeData;
+        memcpy(&originData, maxOrigin.data(), sizeof maxOrigin);
+        memcpy(&sizeData, maxSize.data(),  sizeof maxSize);
+
+        SetPropW(window, ZonedWindowProperties::PropertyMaximizedOriginID, originData);
+        SetPropW(window, ZonedWindowProperties::PropertyMaximizedSizeID, sizeData);
+    }
+
+    RECT GetWindowMaximizedSizeAndOrigin(HWND window) noexcept
+    {
+        HANDLE originData = GetPropW(window, ZonedWindowProperties::PropertyMaximizedOriginID);
+        HANDLE sizeData = GetPropW(window, ZonedWindowProperties::PropertyMaximizedSizeID);
+
+        // Note: We're using shorts here so the x86 hook can access the values
+        std::array<short, 2> maxOrigin;
+        std::array<short, 2> maxSize;
+        memcpy(maxOrigin.data(), &originData, sizeof maxOrigin);
+        memcpy(maxSize.data(), &sizeData, sizeof maxSize);
+
+        int maxOriginX = maxOrigin[0];
+        int maxOriginY = maxOrigin[1];
+        int maxSizeX = maxSize[0];
+        int maxSizeY = maxSize[1];
+
+        DPIAware::Convert(MonitorFromWindow(window, MONITOR_DEFAULTTONULL), maxOriginX, maxOriginY);
+        DPIAware::Convert(MonitorFromWindow(window, MONITOR_DEFAULTTONULL), maxSizeX, maxSizeY);
+
+        RECT rect;
+        rect.left = maxOriginX;
+        rect.top = maxOriginY;
+        rect.right = rect.left + maxSizeX;
+        rect.bottom = rect.top + maxSizeY;
+
+        return rect;
+    }
+
+    void ResetWindowMaximizedSizeAndOrigin(HWND window) noexcept
+    {
+        RemovePropW(window, ZonedWindowProperties::PropertyMaximizedOriginID);
+        RemovePropW(window, ZonedWindowProperties::PropertyMaximizedSizeID);
     }
 
     void SaveWindowSizeAndOrigin(HWND window) noexcept

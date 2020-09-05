@@ -9,7 +9,11 @@
 #include <TraceLoggingActivity.h>
 #include <wil\common.h>
 #include <wil\result.h>
-
+#include <thread>
+#include <Shlwapi.h>
+#include <shellapi.h>
+#include <dwmapi.h>
+#include <system_error>
 
 namespace winrt
 {
